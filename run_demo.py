@@ -26,7 +26,7 @@ FAULT_SCENARIOS = {
     "f1": "orders_since",
     "f2": "product_question",
     "f3": "large_refund",
-    "f4": "where_is_my_order",
+    "f4": "track_all_orders",
     "f5": None,
     "f6": "track_and_refund",
 }
