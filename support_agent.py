@@ -63,7 +63,9 @@ def search_help_center(query: str) -> list[dict]:
         text = f"{article['title']} {article['body']}".lower()
         return sum(1 for w in words if w in text)
 
-    ranked = sorted(ARTICLES, key=score, reverse=True)
+    # Draft articles are not reviewed yet, so customers must not see them.
+    published = [a for a in ARTICLES if a.get("status") == "published"]
+    ranked = sorted(published, key=score, reverse=True)
     return [a for a in ranked[:2] if score(a) > 0]
 
 
