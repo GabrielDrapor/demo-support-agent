@@ -331,12 +331,24 @@ def _tool_loop(
         message = response.choices[0].message
         if not message.tool_calls:
             return message.content or ""
-        for call in message.tool_calls:
-            if call.function.name == "transfer_to_agent":
-                args = json.loads(call.function.arguments)
+        transfers = [c for c in message.tool_calls if c.function.name == "transfer_to_agent"]
+        for call in transfers:
+            args = json.loads(call.function.arguments)
+            if args.get("agent") != agent:
                 return Handoff(source=agent, target=args["agent"], reason=args.get("reason", ""))
         messages.append(message.model_dump(exclude_none=True))
-        messages.extend(_run_tools_in_parallel(message.tool_calls))
+        # A transfer to the agent itself is a model mistake; tell the model and go on.
+        messages.extend(
+            {
+                "role": "tool",
+                "tool_call_id": c.id,
+                "content": json.dumps({"error": f"You are the {agent} agent. Answer yourself."}),
+            }
+            for c in transfers
+        )
+        others = [c for c in message.tool_calls if c not in transfers]
+        if others:
+            messages.extend(_run_tools_in_parallel(others))
     return "I'm sorry, I could not finish this request. I have passed it to our support team."
 
 
@@ -392,7 +404,8 @@ def refunds_agent(
 ) -> str | Handoff:
     system = (
         f"{_BASE_RULES} You handle returns and refunds. The customer ID is {customer_id}. "
-        "Check the return policy and the order before you refund. "
+        "Check the return policy and the order before you refund. When the order can be refunded, "
+        "call issue_refund: it sends refunds above the limit to supervisor review by itself. "
         f"Refunds above ${REFUND_LIMIT_USD:.0f} go to supervisor review; tell the customer the result. "
         "If the customer asks where an order is, transfer to the orders agent."
         f"{_handoff_note(transferred_from)}"
