@@ -30,7 +30,7 @@ AGENT_MODEL = "gpt-6-luna"
 REVIEW_MODEL = "gpt-6.1-sol"
 # Chat Completions accepts function tools on gpt-6 models only with reasoning off.
 AGENT_REASONING = "none"
-MAX_TOOL_STEPS = 6
+MAX_TOOL_STEPS = 10
 MAX_HANDOFFS = 3
 CUSTOMER_CACHE_TTL_S = 600
 
@@ -372,7 +372,8 @@ def _handoff_note(transferred_from: str | None) -> str:
         return ""
     return (
         f" The {transferred_from} agent passed this conversation to you. "
-        "Answer the part that is yours and mention the rest briefly."
+        "Its note has the facts for its part. Answer the whole request: your part, "
+        "and the other part from the note."
     )
 
 
@@ -384,7 +385,8 @@ def orders_agent(
         f"{_BASE_RULES} You handle order status and delivery questions. "
         f"Today is {date.today().isoformat()}. The customer ID is {customer_id}. "
         "If the customer has several orders, check them all at once. "
-        "If the customer wants a return or a refund, transfer to the refunds agent."
+        "If the customer also wants a return or a refund, first get the facts for your own part, "
+        "then transfer to the refunds agent and put those facts in the reason."
         f"{_handoff_note(transferred_from)}"
     )
     tools = [
@@ -407,7 +409,8 @@ def refunds_agent(
         "Check the return policy and the order before you refund. When the order can be refunded, "
         "call issue_refund: it sends refunds above the limit to supervisor review by itself. "
         f"Refunds above ${REFUND_LIMIT_USD:.0f} go to supervisor review; tell the customer the result. "
-        "If the customer asks where an order is, transfer to the orders agent."
+        "If the customer also asks where an order is, first get the facts for your own part, "
+        "then transfer to the orders agent and put those facts in the reason."
         f"{_handoff_note(transferred_from)}"
     )
     tools = ["get_customer", "lookup_order", "search_help_center", "issue_refund", "create_ticket"]
@@ -478,4 +481,7 @@ def handle_message(
         if not isinstance(result, Handoff):
             return result
         agent, transferred_from = result.target, result.source
+        # Pass on what the first agent found, so the answer covers the whole request.
+        note = f"Note from the {result.source} agent: {result.reason}"
+        messages = [*messages, {"role": "assistant", "content": note}]
     return "I'm sorry, I could not finish this request. I have passed it to our support team."

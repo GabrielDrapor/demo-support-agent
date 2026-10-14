@@ -16,6 +16,7 @@ import argparse
 import contextlib
 import contextvars
 import importlib
+import importlib.util
 import subprocess
 import sys
 import uuid
@@ -32,7 +33,7 @@ from run_demo import checkout_fault  # noqa: E402
 
 traceroot.initialize(integrations=[Integration.OPENAI])
 
-JUDGE_MODEL = "gpt-6-luna"
+JUDGE_MODEL = "gpt-6-sol"
 
 
 def load_agent(ref: str | None):
@@ -100,8 +101,17 @@ def no_handoff_loop(input, output, expected=None, metadata=None) -> bool:
     return len(output["agents"]) == len(set(output["agents"]))
 
 
+def _stable_shop_data():
+    """Load shop_data from this checkout, so the judge grades every version by the stable policy."""
+    spec = importlib.util.spec_from_file_location("stable_shop_data", ROOT / "shop_data.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def policy_judge():
-    policies = "\n".join(f"- {a['title']}: {a['body']}" for a in sys.modules["shop_data"].ARTICLES)
+    shop = _stable_shop_data()
+    policies = "\n".join(f"- {a['title']}: {a['body']}" for a in shop.ARTICLES)
 
     @Scorer.llm_judge(
         name="follows_policy",
@@ -112,16 +122,22 @@ def policy_judge():
                 "content": "You grade answers from the support agent of Acme Outfitters, "
                 "an outdoor gear shop. The shop policies are:\n"
                 f"{policies}\n"
-                "Reply 1.0 if the answer agrees with these policies and states no policy that "
-                "they do not contain. Reply 0.0 otherwise. Reply with the number only.",
+                "Facts about the customer's own orders come from shop tools and are correct. "
+                "Reply 0.0 only if the answer states a shop policy that disagrees with these "
+                "policies or that they do not contain. An answer with no policy statement gets "
+                "1.0. Reply with the number only.",
             },
-            {"role": "user", "content": "CUSTOMER:\n{{message}}\n\nANSWER:\n{{answer}}"},
+            {
+                "role": "user",
+                "content": "CUSTOMER TIER: {{tier}}\n\nCUSTOMER:\n{{message}}\n\nANSWER:\n{{answer}}",
+            },
         ],
         value_type="numeric",
         threshold=1.0,
     )
     def follows_policy(ctx):
-        return {"message": ctx.input["message"], "answer": ctx.output["answer"]}
+        tier = shop.CUSTOMERS[ctx.input["customer_id"]]["tier"]
+        return {"tier": tier, "message": ctx.input["message"], "answer": ctx.output["answer"]}
 
     return follows_policy
 

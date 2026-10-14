@@ -79,14 +79,24 @@ V1 = [
         "wrong-order-id",
         "C-1001",
         "Where is order A-84230?",
-        [["not find", "not found", "couldn't find", "could not find", "check"]],
+        [
+            [
+                "not find",
+                "not found",
+                "couldn't find",
+                "couldn’t find",
+                "could not find",
+                "confirm",
+                "check",
+            ]
+        ],
         [],
     ),
     (
         "orders-since",
         "C-1004",
         "What have I ordered in the last two weeks?",
-        [["a-48302"]],
+        [["a-48302", "insulated bottle"]],
         ["list_orders"],
     ),
     (
