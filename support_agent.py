@@ -138,6 +138,8 @@ def get_customer(customer_id: str) -> dict:
 def issue_refund(order_id: str, amount_usd: float, reason: str) -> dict:
     shop_data.simulated_latency(0.3, 0.8)
     order = lookup_order(order_id)
+    if not isinstance(amount_usd, int | float) or amount_usd <= 0:
+        raise ToolError(f"Invalid refund amount: {amount_usd}")
     if amount_usd > order["total_usd"]:
         raise ToolError(f"Refund {amount_usd} is more than the order total {order['total_usd']}")
     if amount_usd > REFUND_LIMIT_USD:
@@ -292,6 +294,9 @@ def _run_tool(call) -> dict:
         result = func(**json.loads(call.function.arguments))
     except ToolError as exc:
         result = {"error": str(exc)}
+    except TypeError as exc:
+        # The model sent missing or unknown arguments.
+        result = {"error": f"Bad arguments for {call.function.name}: {exc}"}
     return {"role": "tool", "tool_call_id": call.id, "content": json.dumps(result)}
 
 
