@@ -108,6 +108,16 @@ _customer_cache: dict[str, tuple[float, dict]] = {}
 _customer_cache_lock = threading.Lock()
 
 
+def warm_customer_cache() -> None:
+    """Load every customer profile once at startup, so no request waits for the CRM."""
+    ids = list(shop_data.CUSTOMERS)
+    with ThreadPoolExecutor(max_workers=len(ids)) as pool:
+        profiles = dict(zip(ids, pool.map(shop_data.fetch_crm_profile, ids), strict=True))
+    with _customer_cache_lock:
+        for customer_id, profile in profiles.items():
+            _customer_cache[customer_id] = (time.monotonic(), profile)
+
+
 @observe(name="get_customer", type="tool")
 def get_customer(customer_id: str) -> dict:
     with _customer_cache_lock:

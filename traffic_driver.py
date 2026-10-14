@@ -194,6 +194,7 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     random.seed(args.seed)
+    support_agent.warm_customer_cache()
     with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
         list(pool.map(run_session, range(args.sessions)))
     traceroot.flush()
