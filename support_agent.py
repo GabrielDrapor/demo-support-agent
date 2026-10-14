@@ -363,8 +363,8 @@ _BASE_RULES = (
 
 
 def _handoff_tools(transferred_from: str | None) -> list[str]:
-    """An agent that received a handoff must not pass the conversation back."""
-    return [] if transferred_from else ["transfer_to_agent"]
+    """Any orders or refunds agent can hand off, so a request can pass through several agents."""
+    return ["transfer_to_agent"]
 
 
 def _handoff_note(transferred_from: str | None) -> str:
