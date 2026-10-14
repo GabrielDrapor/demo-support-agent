@@ -20,6 +20,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 WORKTREES = ROOT / ".worktrees"
 
+# The scenario that reaches the bug of each fault. A fault version runs this
+# scenario more often, so its problem shows up in a small share of traffic.
+FAULT_SCENARIOS = {
+    "f1": "orders_since",
+    "f2": "product_question",
+    "f3": "large_refund",
+    "f4": "where_is_my_order",
+    "f5": None,
+    "f6": "track_and_refund",
+}
+
 FAULTS = {
     "f1": "fault/f1-us-date-format",
     "f2": "fault/f2-draft-filter",
@@ -59,16 +70,19 @@ def main() -> None:
         parser.error(f"unknown faults: {', '.join(unknown)}")
 
     per_fault = round(args.sessions * args.fault_share / len(faults)) if faults else 0
-    runs = [(ROOT, args.sessions - per_fault * len(faults))]
-    runs += [(checkout_fault(FAULTS[f]), per_fault) for f in faults if per_fault > 0]
+    runs = [(ROOT, args.sessions - per_fault * len(faults), None)]
+    if per_fault > 0:
+        runs += [(checkout_fault(FAULTS[f]), per_fault, FAULT_SCENARIOS[f]) for f in faults]
 
     procs = []
-    for cwd, sessions in runs:
+    for cwd, sessions, focus in runs:
         if sessions <= 0:
             continue
-        print(f"{sessions:>4} sessions on {cwd.name}")
+        print(f"{sessions:>4} sessions on {cwd.name}" + (f" (focus: {focus})" if focus else ""))
         cmd = [sys.executable, "traffic_driver.py", "--sessions", str(sessions)]
         cmd += ["--concurrency", str(args.concurrency)]
+        if focus:
+            cmd += ["--focus", focus]
         procs.append(subprocess.Popen(cmd, cwd=cwd))
     sys.exit(max(p.wait() for p in procs))
 

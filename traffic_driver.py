@@ -17,6 +17,7 @@ import logging
 import random
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 import traceroot
 from traceroot import Integration
@@ -160,8 +161,15 @@ SCENARIOS = [
 ]
 
 
-def run_session(index: int) -> None:
-    scenario = random.choices([s for s, _ in SCENARIOS], weights=[w for _, w in SCENARIOS])[0]
+def pick_scenario(focus: str | None, focus_share: float):
+    """Pick a scenario by weight. With `focus`, that scenario gets `focus_share` of sessions."""
+    if focus and random.random() < focus_share:
+        return next(s for s, _ in SCENARIOS if s.__name__ == focus)
+    return random.choices([s for s, _ in SCENARIOS], weights=[w for _, w in SCENARIOS])[0]
+
+
+def run_session(index: int, focus: str | None = None, focus_share: float = 0.0) -> None:
+    scenario = pick_scenario(focus, focus_share)
     customer_id, turns = scenario()
     session_id = f"sess-{uuid.uuid4().hex[:12]}"
     channel = random.choices(["web", "mobile", "email"], weights=[6, 3, 1])[0]
@@ -190,13 +198,16 @@ def main() -> None:
     parser.add_argument("--sessions", type=int, default=20)
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--focus", choices=[s.__name__ for s, _ in SCENARIOS], default=None)
+    parser.add_argument("--focus-share", type=float, default=0.5)
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     random.seed(args.seed)
     support_agent.warm_customer_cache()
     with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-        list(pool.map(run_session, range(args.sessions)))
+        run = partial(run_session, focus=args.focus, focus_share=args.focus_share)
+        list(pool.map(run, range(args.sessions)))
     traceroot.flush()
 
 
