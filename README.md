@@ -55,3 +55,26 @@ uv run --no-project --python 3.13 --with-requirements requirements.txt \
 traffic driver there, so the traces from a fault carry that fault's commit.
 
 One session costs about $0.001 to $0.003 on the stable version.
+
+## Evaluation
+
+`evals/` holds a golden set of 16 customer messages and an evaluation with
+four scorers:
+
+| Scorer | Type | Passes when |
+|---|---|---|
+| `expected_facts` | code | The answer contains the key facts of the case. |
+| `required_tools` | code | The agent called the tools that the case needs. |
+| `no_handoff_loop` | code | No sub-agent handled the message twice. |
+| `follows_policy` | LLM judge (`gpt-6-sol`) | The answer states no shop policy that the help center does not contain. |
+
+Run it against the stable version or a fault version:
+
+```bash
+python evals/run_eval.py                                     # stable version
+python evals/run_eval.py --ref fault/f3-refund-limit-config  # one fault
+python evals/run_eval.py --local                             # do not report to TraceRoot
+```
+
+Each fault fails the case that reaches its bug, so the run comparison in
+TraceRoot shows which cases a commit broke.
