@@ -26,7 +26,7 @@ import shop_data
 from shop_data import ARTICLES, ORDERS, REFUND_LIMIT_USD, TRACKING_EVENTS
 
 ROUTER_MODEL = "gpt-6-luna"
-AGENT_MODEL = "gpt-6-luna"
+AGENT_MODEL = "gpt-6-sol"
 REVIEW_MODEL = "gpt-6.1-sol"
 # Chat Completions accepts function tools on gpt-6 models only with reasoning off.
 AGENT_REASONING = "none"
