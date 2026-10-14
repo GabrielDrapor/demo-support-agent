@@ -423,7 +423,7 @@ def handle_message(
     channel: str,
 ) -> str:
     """Answer one customer message. `history` holds the earlier turns of the session."""
-    tier = shop_data.CUSTOMERS[customer_id]["tier"]
+    tier = get_customer(customer_id)["tier"]
     update_current_trace(
         user_id=customer_id,
         session_id=session_id,
