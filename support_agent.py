@@ -13,8 +13,6 @@ from __future__ import annotations
 
 import contextvars
 import json
-import threading
-import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date
@@ -32,7 +30,6 @@ REVIEW_MODEL = "gpt-6.1-sol"
 AGENT_REASONING = "none"
 MAX_TOOL_STEPS = 10
 MAX_HANDOFFS = 3
-CUSTOMER_CACHE_TTL_S = 600
 
 _client: openai.OpenAI | None = None
 
@@ -106,32 +103,12 @@ def get_tracking(order_id: str) -> dict:
     }
 
 
-_customer_cache: dict[str, tuple[float, dict]] = {}
-_customer_cache_lock = threading.Lock()
-
-
-def warm_customer_cache() -> None:
-    """Load every customer profile once at startup, so no request waits for the CRM."""
-    ids = list(shop_data.CUSTOMERS)
-    with ThreadPoolExecutor(max_workers=len(ids)) as pool:
-        profiles = dict(zip(ids, pool.map(shop_data.fetch_crm_profile, ids), strict=True))
-    with _customer_cache_lock:
-        for customer_id, profile in profiles.items():
-            _customer_cache[customer_id] = (time.monotonic(), profile)
-
-
 @observe(name="get_customer", type="tool")
 def get_customer(customer_id: str) -> dict:
-    with _customer_cache_lock:
-        cached = _customer_cache.get(customer_id)
-    if cached and time.monotonic() - cached[0] < CUSTOMER_CACHE_TTL_S:
-        profile = cached[1]
-    else:
-        profile = shop_data.fetch_crm_profile(customer_id)
-        if profile is None:
-            raise ToolError(f"Customer {customer_id} not found")
-        with _customer_cache_lock:
-            _customer_cache[customer_id] = (time.monotonic(), profile)
+    # Read the CRM every time: a cached profile showed the old tier after an upgrade.
+    profile = shop_data.fetch_crm_profile(customer_id)
+    if profile is None:
+        raise ToolError(f"Customer {customer_id} not found")
     orders = [o["order_id"] for o in ORDERS.values() if o["customer_id"] == customer_id]
     return {"customer_id": customer_id, **profile, "orders": orders}
 

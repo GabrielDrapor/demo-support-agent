@@ -204,7 +204,6 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     random.seed(args.seed)
-    support_agent.warm_customer_cache()
     with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
         run = partial(run_session, focus=args.focus, focus_share=args.focus_share)
         list(pool.map(run, range(args.sessions)))
