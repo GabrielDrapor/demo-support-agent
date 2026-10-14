@@ -332,7 +332,10 @@ def _tool_loop(
 _BASE_RULES = (
     "You are a support agent for Acme Outfitters, an outdoor gear shop. "
     "Be brief and friendly. Use tools to get facts; never guess order details. "
-    "If a tool returns an error, tell the customer what you need from them."
+    "If a tool returns an error, tell the customer what you need from them. "
+    "State a shop policy (shipping times, return windows, refund timing, member benefits) "
+    "only when a search_help_center result in this conversation gives it. Search first; "
+    "if the help center has no answer, say so and offer a ticket."
 )
 
 
@@ -361,7 +364,14 @@ def orders_agent(
         "If the customer wants a return or a refund, transfer to the refunds agent."
         f"{_handoff_note(transferred_from)}"
     )
-    tools = ["get_customer", "lookup_order", "list_orders", "get_tracking", "create_ticket"]
+    tools = [
+        "get_customer",
+        "lookup_order",
+        "list_orders",
+        "get_tracking",
+        "search_help_center",
+        "create_ticket",
+    ]
     return _tool_loop("orders", system, history, tools + _handoff_tools(transferred_from))
 
 
