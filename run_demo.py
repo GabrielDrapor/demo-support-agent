@@ -22,11 +22,11 @@ WORKTREES = ROOT / ".worktrees"
 
 FAULTS = {
     "f1": "fault/f1-us-date-format",
-    "f2": "fault/f2-title-only-search",
+    "f2": "fault/f2-draft-filter",
     "f3": "fault/f3-refund-limit-config",
     "f4": "fault/f4-no-customer-cache",
     "f5": "fault/f5-bigger-agent-model",
-    "f6": "fault/f6-handoff-source",
+    "f6": "fault/f6-chained-handoffs",
 }
 
 

@@ -28,11 +28,11 @@ root cause analysis can point to the commit that caused them.
 | Branch | What goes wrong |
 |---|---|
 | `fault/f1-us-date-format` | `list_orders` parses dates as MM/DD/YYYY, but the model sends YYYY-MM-DD, so the tool fails. |
-| `fault/f2-title-only-search` | Help-center search matches titles only and usually returns nothing, so the product agent answers from its own knowledge. |
+| `fault/f2-draft-filter` | Help-center search keeps only articles with `status: published`, but no article has that field, so search returns nothing and the product agent answers from its own knowledge. |
 | `fault/f3-refund-limit-config` | The refund limit default is $2000 instead of $200, so large refunds skip supervisor review. |
 | `fault/f4-no-customer-cache` | The customer profile cache is removed, so every `get_customer` call waits for the slow CRM. |
 | `fault/f5-bigger-agent-model` | Sub-agents use `gpt-4.1` instead of `gpt-4.1-mini`, so each trace costs about five times more. |
-| `fault/f6-handoff-source` | Agents can pass a handoff back, so two-part requests bounce between the orders and refunds agents. |
+| `fault/f6-chained-handoffs` | Agents can pass a handoff back, so two-part requests bounce between the orders and refunds agents. |
 
 ## Run
 
