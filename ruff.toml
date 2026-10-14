@@ -1,0 +1,6 @@
+line-length = 100
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+# Prompts are long strings, and traceroot.initialize() must run before the agent imports.
+ignore = ["E501", "E402"]

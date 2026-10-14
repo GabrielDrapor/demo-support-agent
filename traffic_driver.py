@@ -116,6 +116,36 @@ def complaint():
     ]
 
 
+def orders_since():
+    customer_id = random.choice(["C-1001", "C-1004", "C-1006"])
+    return customer_id, [
+        random.choice(
+            [
+                "What have I ordered in the last two weeks?",
+                "Can you list my orders from the past month?",
+                "Show me everything I bought since the start of last week.",
+            ]
+        )
+    ]
+
+
+def track_and_refund():
+    """Ask about two orders at once: one for the orders agent, one for refunds."""
+    customer_id = random.choice(["C-1001", "C-1004", "C-1006"])
+    shipped = _orders_of(customer_id, "shipped")[0]["order_id"]
+    delivered = _orders_of(customer_id, "delivered")[0]
+    return customer_id, [
+        random.choice(
+            [
+                f"Where is order {shipped}? Also I want to return the {delivered['item']} "
+                f"from {delivered['order_id']}.",
+                f"Two things: refund {delivered['order_id']} please, and when will {shipped} arrive?",
+                f"Where is {shipped}? If it won't arrive this week, I want my money back.",
+            ]
+        )
+    ]
+
+
 SCENARIOS = [
     (where_is_my_order, 5),
     (track_all_orders, 2),
@@ -125,6 +155,8 @@ SCENARIOS = [
     (product_question, 4),
     (wrong_order_id, 2),
     (complaint, 1),
+    (orders_since, 2),
+    (track_and_refund, 2),
 ]
 
 
@@ -140,9 +172,16 @@ def run_session(index: int) -> None:
         except Exception:
             logger.exception("session %s failed", session_id)
             return
-        history += [{"role": "user", "content": message}, {"role": "assistant", "content": reply}]
+        history += [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": reply},
+        ]
     logger.info(
-        "session %d done: %s (%s, %d turns)", index, scenario.__name__, customer_id, len(turns)
+        "session %d done: %s (%s, %d turns)",
+        index,
+        scenario.__name__,
+        customer_id,
+        len(turns),
     )
 
 

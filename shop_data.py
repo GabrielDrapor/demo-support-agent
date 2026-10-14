@@ -104,3 +104,10 @@ TRACKING_EVENTS = [
 def simulated_latency(low: float, high: float) -> None:
     """Sleep for a random time, like a call to a slow backend service."""
     time.sleep(random.uniform(low, high))
+
+
+def fetch_crm_profile(customer_id: str) -> dict | None:
+    """Read a customer profile from the CRM. The CRM is slow, so callers cache it."""
+    simulated_latency(1.5, 2.5)
+    customer = CUSTOMERS.get(customer_id)
+    return dict(customer) if customer else None
