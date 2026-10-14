@@ -17,7 +17,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 import openai
 from traceroot import observe, update_current_span, update_current_trace
@@ -78,10 +78,13 @@ def lookup_order(order_id: str) -> dict:
 
 @observe(name="list_orders", type="tool")
 def list_orders(customer_id: str, since: str) -> list[dict]:
-    """Return the customer's orders placed on or after `since` (YYYY-MM-DD)."""
+    """Return the customer's orders placed on or after `since`.
+
+    The storefront sends dates in US format (MM/DD/YYYY).
+    """
     shop_data.simulated_latency(0.2, 0.5)
     try:
-        since_date = date.fromisoformat(since)
+        since_date = datetime.strptime(since, "%m/%d/%Y").date()
     except ValueError as exc:
         raise ToolError(f"Invalid date: {since}") from exc
     return [
