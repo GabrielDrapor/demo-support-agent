@@ -78,3 +78,16 @@ python evals/run_eval.py --local                             # do not report to 
 
 Each fault fails the case that reaches its bug, so the run comparison in
 TraceRoot shows which cases a commit broke.
+
+## Set up a new demo project
+
+`setup_project.py` creates the detectors, alerts and dashboard that the demo
+uses. It is safe to run again. Writes need a member's login, not a project
+key:
+
+```bash
+export TRACEROOT_API_KEY=tr-...          # project key; selects the project
+export TRACEROOT_ACCESS_TOKEN=...        # session token or CLI access token
+export TRACEROOT_HOST_URL=https://app.traceroot.ai
+python setup_project.py
+```
