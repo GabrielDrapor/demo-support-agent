@@ -25,9 +25,11 @@ from traceroot import observe, update_current_span, update_current_trace
 import shop_data
 from shop_data import ARTICLES, ORDERS, REFUND_LIMIT_USD, TRACKING_EVENTS
 
-ROUTER_MODEL = "gpt-4.1-nano"
-AGENT_MODEL = "gpt-4.1-mini"
-REVIEW_MODEL = "gpt-4.1"
+ROUTER_MODEL = "gpt-6-luna"
+AGENT_MODEL = "gpt-6-luna"
+REVIEW_MODEL = "gpt-6.1-sol"
+# Chat Completions accepts function tools on gpt-6 models only with reasoning off.
+AGENT_REASONING = "none"
 MAX_TOOL_STEPS = 6
 MAX_HANDOFFS = 3
 CUSTOMER_CACHE_TTL_S = 600
@@ -320,7 +322,11 @@ def _tool_loop(
     tools = [TOOL_SCHEMAS[n] for n in tool_names]
     for _ in range(MAX_TOOL_STEPS):
         response = client().chat.completions.create(
-            model=AGENT_MODEL, messages=messages, tools=tools, parallel_tool_calls=True
+            model=AGENT_MODEL,
+            reasoning_effort=AGENT_REASONING,
+            messages=messages,
+            tools=tools,
+            parallel_tool_calls=True,
         )
         message = response.choices[0].message
         if not message.tool_calls:
@@ -413,6 +419,7 @@ AGENTS = {"orders": orders_agent, "refunds": refunds_agent, "product": product_a
 def route_message(message: str) -> str:
     response = client().chat.completions.create(
         model=ROUTER_MODEL,
+        reasoning_effort="none",
         response_format={"type": "json_object"},
         messages=[
             {
